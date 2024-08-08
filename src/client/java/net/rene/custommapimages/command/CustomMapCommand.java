@@ -40,22 +40,21 @@ public class CustomMapCommand {
         assert player != null;
         BlockPos pos2 = player.getBlockPos().down();
         BlockPos pos = player.getChunkPos().getStartPos().north();
-        Block block = serverWorld.getBlockState(pos2).getBlock();
-        String name = String.valueOf(block.getDefaultMapColor().id);
-        context.getSource().sendFeedback(() -> Text.literal("HALLO :D, your cords are " + pos2.getX() + " " +  pos2.getY() + " " +
-                pos2.getZ() + "\nYou are standing on " + name), true);
+        String blockColor = String.valueOf(serverWorld.getBlockState(pos2).getBlock().getDefaultMapColor().id);
+        context.getSource().sendFeedback(() -> Text.literal("Cords " + pos2.getX() + " " +  pos2.getY() + " " +
+                pos2.getZ() + "\nBlockColor " + blockColor), true);
 
-        BlockState ironBlockState = Blocks.IRON_BLOCK.getDefaultState();
         BlockPos startPos = pos;
         // + one map -> 8 chunks/ 128 Blocks
         // middle -> 4
 
-        context.getSource().sendFeedback(() -> Text.literal(String.format("Current chunk pos: %d %d %d", pos.getX(), pos.getY(), pos.getZ())), true);
-        startPos = new BlockPos(startPos.getX() + startPos.getX() % 128, startPos.getY(), startPos.getZ() + startPos.getX() % 128);
+        context.getSource().sendFeedback(() -> Text.literal(String.format("Current chunk pos: %d %d %d", pos2.getX(), pos2.getY(), pos2.getZ())), true);
+        // getting
+        startPos = new BlockPos(startPos.getX() + (128 - startPos.getX() % 128), startPos.getY(), startPos.getZ() + (128 - startPos.getZ() % 128));
         BlockPos finalStartPos = startPos;
         context.getSource().sendFeedback(() -> Text.literal(String.format("Current map pos: %d %d %d", finalStartPos.getX(), finalStartPos.getY(), finalStartPos.getZ())), true);
 
-        startPos = new BlockPos(startPos.getX() - 64, startPos.getY(), startPos.getZ() + 64);
+        startPos = new BlockPos(startPos.getX() - 64, startPos.getY(), startPos.getZ() + 63);
         BlockPos tmp = startPos;
 
         // getting image
