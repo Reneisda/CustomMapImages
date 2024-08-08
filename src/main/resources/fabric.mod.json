@@ -1,0 +1,44 @@
+{
+	"schemaVersion": 1,
+	"id": "custommapimages",
+	"version": "${version}",
+	"name": "CustomMapImages",
+	"description": "This is an example description! Tell everyone what your mod is about!",
+	"authors": [
+		"Me!"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "MIT",
+	"icon": "assets/custommapimages/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"net.rene.custommapimages.CustomMapImages"
+		],
+		"client": [
+			"net.rene.custommapimages.CustomMapImagesClient"
+		],
+		"fabric-datagen": [
+			"net.rene.custommapimages.CustomMapImagesDataGenerator"
+		]
+	},
+	"mixins": [
+		"custommapimages.mixins.json",
+		{
+			"config": "custommapimages.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.15.11",
+		"minecraft": "~1.21",
+		"java": ">=21",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}

@@ -1,0 +1,120 @@
+package net.rene.custommapimages.command;
+
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.command.CommandRegistryAccess;
+import net.minecraft.command.argument.BlockStateArgument;
+import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.state.property.Properties;
+import net.minecraft.text.Text;
+import net.minecraft.util.Clearable;
+import net.minecraft.util.math.BlockPos;
+import net.rene.custommapimages.CustomMapImages;
+import org.slf4j.Logger;
+
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+
+public class CustomMapCommand {
+    private static final Logger logger = CustomMapImages.LOGGER;
+    private static final SimpleCommandExceptionType FAILED_EXCEPTION = new SimpleCommandExceptionType(Text.translatable("commands.setblock.failed"));
+
+    public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess commandRegistryAccess, CommandManager.RegistrationEnvironment registrationEnvironment) {
+        dispatcher.register(CommandManager.literal("map").requires(source -> source.hasPermissionLevel(2)).executes(CustomMapCommand::run));
+    }
+    private static int run(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        ServerPlayerEntity player = context.getSource().getPlayer();
+        ServerWorld serverWorld = context.getSource().getWorld();
+        assert player != null;
+        BlockPos pos2 = player.getBlockPos().down();
+        BlockPos pos = player.getChunkPos().getStartPos().north();
+        Block block = serverWorld.getBlockState(pos2).getBlock();
+        String name = String.valueOf(block.getDefaultMapColor().id);
+        context.getSource().sendFeedback(() -> Text.literal("HALLO :D, your cords are " + pos2.getX() + " " +  pos2.getY() + " " +
+                pos2.getZ() + "\nYou are standing on " + name), true);
+
+        BlockState ironBlockState = Blocks.IRON_BLOCK.getDefaultState();
+        BlockPos startPos = pos;
+        // + one map -> 8 chunks/ 128 Blocks
+        // middle -> 4
+
+        context.getSource().sendFeedback(() -> Text.literal(String.format("Current chunk pos: %d %d %d", pos.getX(), pos.getY(), pos.getZ())), true);
+        startPos = new BlockPos(startPos.getX() + startPos.getX() % 128, startPos.getY(), startPos.getZ() + startPos.getX() % 128);
+        BlockPos finalStartPos = startPos;
+        context.getSource().sendFeedback(() -> Text.literal(String.format("Current map pos: %d %d %d", finalStartPos.getX(), finalStartPos.getY(), finalStartPos.getZ())), true);
+
+        startPos = new BlockPos(startPos.getX() - 64, startPos.getY(), startPos.getZ() + 64);
+        BlockPos tmp = startPos;
+
+        // getting image
+
+        BufferedImage img;
+        try {
+            img = ImageIO.read(new File("C:\\Users\\Rene\\IdeaProjects\\custommapimages-template-1.21\\src\\client\\java\\net\\rene\\custommapimages\\command\\img.png"));
+        } catch (IOException e) {
+            logger.info("Broken image");
+            throw new RuntimeException(e);
+        }
+        logger.info("Reading image worked!");
+        ColorHelper image = new ColorHelper(img);
+        logger.info(String.format("Size of image %dx%d", img.getWidth(), img.getHeight()));
+        for (int i = 0; i < img.getHeight(); ++i) {
+            for (int j = 0; j < img.getWidth(); ++j) {
+                Color color = new Color(image.getRed(j, i) & 0xFF, image.getGreen(j, i) & 0xFF, image.getBlue(j, i) & 0xFF);
+                Block block_ = image.getBestBlock(color);
+                if (block_ == Blocks.GLOW_LICHEN) {
+                    tmp = tmp.down();
+                    serverWorld.setBlockState(tmp, Blocks.GOLD_BLOCK.getDefaultState(), Block.NOTIFY_LISTENERS);
+                    tmp = tmp.up();
+                    serverWorld.setBlockState(tmp, Blocks.GLOW_LICHEN.getDefaultState().with(Properties.DOWN, true), Block.NOTIFY_LISTENERS);
+                }
+                else {
+                    serverWorld.setBlockState(tmp, block_.getDefaultState(), Block.NOTIFY_LISTENERS);
+                }
+                tmp = tmp.north();
+            }
+            tmp = new BlockPos(tmp.getX() + 1, startPos.getY(), startPos.getZ());
+        }
+
+
+        return 1;
+    }
+
+    private static int execute(ServerCommandSource source, BlockStateArgument block) throws CommandSyntaxException {
+        ServerWorld serverWorld = source.getWorld();
+
+
+        BlockPos pos = source.getPlayer().getBlockPos().down();
+
+        // Replace the block under the player
+        BlockEntity blockEntity = serverWorld.getBlockEntity(pos);
+        if (blockEntity != null) {
+            Clearable.clear(blockEntity);
+        }
+
+        boolean blockSetSuccessfully = block.setBlockState(serverWorld, pos, Block.NOTIFY_LISTENERS);
+        if (!blockSetSuccessfully) {
+            throw FAILED_EXCEPTION.create();
+        }
+
+        serverWorld.updateNeighbors(pos, block.getBlockState().getBlock());
+        source.sendFeedback(() ->Text.literal("HALLO :D, your cords are " + pos.getX() + " " +  pos.getY() + " " +
+                pos.getZ() + "\nYou are standing on a block "), true);
+
+        return 1;
+    }
+
+
+}
