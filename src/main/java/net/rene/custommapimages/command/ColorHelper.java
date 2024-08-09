@@ -93,6 +93,7 @@ public class ColorHelper {
         blockHeightDelta = new byte[width * height];
 
     }
+
     private void create_color_map() {
         map.put(PALE_GREEN, Blocks.SLIME_BLOCK);
         map.put(PALE_YELLOW, Blocks.SANDSTONE);
@@ -107,7 +108,7 @@ public class ColorHelper {
         map.put(STONE_GRAY, Blocks.STONE);
         map.put(WATER_BLUE, Blocks.WATER);
         map.put(OAK_TAN, Blocks.OAK_WOOD);
-        map.put(OFF_WHITE,Blocks.QUARTZ_BLOCK);
+        map.put(OFF_WHITE, Blocks.QUARTZ_BLOCK);
         map.put(ORANGE, Blocks.ORANGE_WOOL);
         map.put(MAGENTA, Blocks.MAGENTA_WOOL);
         map.put(LIGHT_BLUE, Blocks.LIGHT_BLUE_WOOL);
@@ -169,30 +170,42 @@ public class ColorHelper {
         argb += (((int) pixels[pos] & 0xff) << 16); // red
         return argb;
     }
+
     byte getBlue(int x, int y) {
-        int pos = (y * pixelLength * width) + (x * pixelLength);
-        if (hasAlphaChannel) {
-            pos++;
+        try {
+            int pos = (y * pixelLength * width) + (x * pixelLength);
+            if (hasAlphaChannel) {
+                pos++;
+            }
+            return pixels[pos];
+        } catch (IndexOutOfBoundsException e) {
+            return 0;
         }
-        return pixels[pos];
     }
     byte getGreen(int x, int y) {
-        int pos = (y * pixelLength * width) + (x * pixelLength);
-        if (hasAlphaChannel) {
-            pos++;
+        try {
+            int pos = (y * pixelLength * width) + (x * pixelLength);
+            if (hasAlphaChannel) {
+                pos++;
+            }
+            return pixels[++pos];
+        } catch (IndexOutOfBoundsException e) {
+            return 0;
+        }
+    }
+    byte getRed(int x, int y){
+            try {
+                int pos = (y * pixelLength * width) + (x * pixelLength);
+                if (hasAlphaChannel) {
+                    pos++;
+                }
+                pos += 2;
+                return pixels[pos];
+            } catch (IndexOutOfBoundsException e) {
+                return 0;
+            }
         }
 
-        return pixels[++pos];
-    }
-    int getRed(int x, int y) {
-        int pos = (y * pixelLength * width) + (x * pixelLength);
-        if (hasAlphaChannel) {
-            pos++;
-        }
-        pos += 2;
-        return pixels[pos];
-
-    }
     static double colorDistance(Color c1, Color c2) {
         int red1 = c1.getRed();
         int red2 = c2.getRed();

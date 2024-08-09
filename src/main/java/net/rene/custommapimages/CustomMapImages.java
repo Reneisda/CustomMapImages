@@ -3,6 +3,7 @@ package net.rene.custommapimages;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.rene.custommapimages.command.CustomMapCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +19,6 @@ public class CustomMapImages implements ModInitializer {
 		// This code runs as soon as Minecraft is in a mod-load-ready state.
 		// However, some things (like resources) may still be uninitialized.
 		// Proceed with mild caution.
-		LOGGER.info("Hello Fabric world!");
+		CommandRegistrationCallback.EVENT.register(CustomMapCommand::register);
 	}
 }
