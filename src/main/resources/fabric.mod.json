@@ -3,9 +3,9 @@
 	"id": "custommapimages",
 	"version": "${version}",
 	"name": "CustomMapImages",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "Minecraft Mod for rendering images from a Url on maps!",
 	"authors": [
-		"Me!"
+		"René"
 	],
 	"contact": {
 		"homepage": "https://fabricmc.net/",

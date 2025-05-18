@@ -2,6 +2,7 @@ package net.rene.custommapimages.command;
 
 import java.awt.*;
 import java.util.HashMap;
+import java.util.Map;
 
 import static net.rene.custommapimages.command.ColorHelper.colorDistance;
 
@@ -259,11 +260,11 @@ public class CustomMapColors {
     public byte bestColor(Color color) {
         double smallestDistance = Double.MAX_VALUE;
         byte bestColor = 0;
-        for (Color c : map.keySet()) {
-            double dist = colorDistance(c, color);
+        for (Map.Entry<Color, Byte> c : map.entrySet()) {
+            double dist = colorDistance(c.getKey(), color);
             if (dist < smallestDistance) {
                 smallestDistance = dist;
-                bestColor = map.get(c);
+                bestColor = map.get(c.getKey());
             }
         }
         return bestColor;
