@@ -19,12 +19,12 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import org.slf4j.Logger;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
 
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
@@ -36,7 +36,9 @@ public class CustomMapCommand {
     private static final int MAX_IMAGE_HEIGHT = 20 * 128;
     private static final int CHAT_ERROR_COLOR = 16711680;
     private static final int CHAT_MESSAGE_COLOR = 16762669;
-    private CustomMapCommand() {}
+
+    private CustomMapCommand() {
+    }
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess cRA,
                                 CommandManager.RegistrationEnvironment rE) {
@@ -76,8 +78,7 @@ public class CustomMapCommand {
         BufferedImage img;
         try {
             img = ImageIO.read(URI.create(url).toURL());
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             logger.error("Failed to read image from url");
             context.sendFeedback(() -> Text.literal("Can't read image").withColor(CHAT_ERROR_COLOR),
                     true);
@@ -90,43 +91,47 @@ public class CustomMapCommand {
         return img;
     }
 
-    private static ItemStack[] createMapItem(BufferedImage img, ColorHelper cH, ServerPlayerEntity player, ServerWorld serverWorld, int[] mapSize) {
+    private static ItemStack drawMap(int mapX, int mapY, BufferedImage img, PlayerEntity player, ServerWorld serverWorld, ColorHelper cH) {
+        CustomMapColors customMapColors = new CustomMapColors();
+        ItemStack mapItem = FilledMapItem.createMap(player.getWorld(), 40_000_000, 40_000_000, (byte) 0, false, false);
+        MapState mapState = FilledMapItem.getMapState(mapItem, serverWorld);
+
+        assert mapState != null;
+        for (int i = 0; i < 128; ++i) {
+            if (i + mapX * 128 > img.getWidth()) {
+                break;
+            }
+            for (int j = 0; j < 128; ++j) {
+                if (j + mapY * 128 > img.getHeight()) {
+                    break;
+                }
+                mapState.setColor(i, j, customMapColors.bestColor(
+                                new Color(
+                                        cH.getRed(i + mapX * 128, j + mapY * 128) & 0xFF,
+                                        cH.getGreen(i + mapX * 128, j + mapY * 128) & 0xFF,
+                                        cH.getBlue(i + mapX * 128, j + mapY * 128) & 0xFF)
+                        )
+                );
+            }
+        }
+        mapItem.set(DataComponentTypes.MAP_POST_PROCESSING, MapPostProcessingComponent.LOCK);
+        return mapItem;
+    }
+
+    private static void createMapItemAndGiveToPlayer(BufferedImage img, ColorHelper cH,
+                                                     ServerPlayerEntity player, ServerWorld serverWorld, int[] mapSize) {
         int mapHeight = (int) (Math.ceil(img.getHeight() / (double) 128));
         int mapWidth = (int) (Math.ceil(img.getWidth() / (double) 128));
-        CustomMapColors customMapColors = new CustomMapColors();
-        ArrayList<ItemStack> mapItems = new ArrayList<>();
         // drawing map
         for (int map_i = 0; map_i < mapWidth; ++map_i) {
             for (int map_j = 0; map_j < mapHeight; ++map_j) {
-                ItemStack mapItem = FilledMapItem.createMap(player.getWorld(), 40_000_000, 40_000_000, (byte) 0, false, false);
-                MapState mapState = FilledMapItem.getMapState(mapItem, serverWorld);
+                ItemStack mapItem = drawMap(map_i, map_j, img, player, serverWorld, cH);
+                giveItemToPlayer(mapItem, player);
 
-                assert mapState != null;
-                for (int i = 0; i < 128; ++i) {
-                    if (i + map_i * 128 > img.getWidth()) {
-                        break;
-                    }
-                    for (int j = 0; j < 128; ++j) {
-                        if (j + map_j * 128 > img.getHeight()) {
-                            break;
-                        }
-                        mapState.setColor(i, j, customMapColors.bestColor(
-                                        new Color(
-                                                cH.getRed(i + map_i * 128, j + map_j * 128) & 0xFF,
-                                                cH.getGreen(i + map_i * 128, j + map_j * 128) & 0xFF,
-                                                cH.getBlue(i + map_i * 128, j + map_j * 128) & 0xFF)
-                                )
-                        );
-                    }
-                }
-                mapItem.set(DataComponentTypes.MAP_POST_PROCESSING, MapPostProcessingComponent.LOCK);
-                mapItems.add(mapItem);
             }
         }
         mapSize[0] = mapWidth;
         mapSize[1] = mapHeight;
-
-        return mapItems.toArray(new ItemStack[0]);
     }
 
     private static void giveItemToPlayer(ItemStack item, PlayerEntity player) {
@@ -187,16 +192,13 @@ public class CustomMapCommand {
         if (img.getWidth() > MAX_IMAGE_WIDTH || img.getHeight() > MAX_IMAGE_HEIGHT) {
             context.sendFeedback(() ->
                     Text.literal(String.format("Your image (%dx%d) is bigger than the maximum allowed " +
-                            "limit (%dx%d)", img.getWidth(), img.getHeight(), MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT))
-                    .withColor(CHAT_ERROR_COLOR), true);
+                                    "limit (%dx%d)", img.getWidth(), img.getHeight(), MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT))
+                            .withColor(CHAT_ERROR_COLOR), true);
 
             return -1;
         }
-        ItemStack[] mapItems = createMapItem(img, cH, player, serverWorld, mapSize);
-        for (ItemStack item: mapItems) {
-            giveItemToPlayer(item, player);
-        }
 
+        createMapItemAndGiveToPlayer(img, cH, player, serverWorld, mapSize);
         context.sendFeedback(() -> Text.literal(String.format("Your image-size: %dx%d Blocks", mapSize[0], mapSize[1]))
                 .withColor(CHAT_MESSAGE_COLOR), true);
 
