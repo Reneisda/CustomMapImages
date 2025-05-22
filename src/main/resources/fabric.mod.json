@@ -25,13 +25,7 @@
 			"net.rene.custommapimages.CustomMapImagesDataGenerator"
 		]
 	},
-	"mixins": [
-		"custommapimages.mixins.json",
-		{
-			"config": "custommapimages.client.mixins.json",
-			"environment": "client"
-		}
-	],
+	"mixins": [],
 	"depends": {
 		"fabricloader": ">=0.15.11",
 		"minecraft": "~1.21",
