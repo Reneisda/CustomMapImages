@@ -32,8 +32,8 @@ import static net.rene.custommapimages.CustomMapImages.LOGGER;
 
 public class CustomMapCommand {
     private static final Logger logger = LOGGER;
-    private static final int MAX_IMAGE_WIDTH = 20 * 128;
-    private static final int MAX_IMAGE_HEIGHT = 20 * 128;
+    private static final int MAX_IMAGE_WIDTH = 40 * 128;
+    private static final int MAX_IMAGE_HEIGHT = 40 * 128;
     private static final int CHAT_ERROR_COLOR = 16711680;
     private static final int CHAT_MESSAGE_COLOR = 16762669;
 
@@ -91,18 +91,20 @@ public class CustomMapCommand {
         return img;
     }
 
-    private static ItemStack drawMap(int mapX, int mapY, BufferedImage img, PlayerEntity player, ServerWorld serverWorld, ColorHelper cH) {
+    private static ItemStack drawMap(int mapX, int mapY, BufferedImage img, PlayerEntity player,
+                                     ServerWorld serverWorld, ColorHelper cH) {
+
         CustomMapColors customMapColors = new CustomMapColors();
         ItemStack mapItem = FilledMapItem.createMap(player.getWorld(), 40_000_000, 40_000_000, (byte) 0, false, false);
         MapState mapState = FilledMapItem.getMapState(mapItem, serverWorld);
 
         assert mapState != null;
         for (int i = 0; i < 128; ++i) {
-            if (i + mapX * 128 > img.getWidth()) {
+            if (i + mapX * 128 >= img.getWidth()) {
                 break;
             }
             for (int j = 0; j < 128; ++j) {
-                if (j + mapY * 128 > img.getHeight()) {
+                if (j + mapY * 128 >= img.getHeight()) {
                     break;
                 }
                 mapState.setColor(i, j, customMapColors.bestColor(
@@ -118,14 +120,64 @@ public class CustomMapCommand {
         return mapItem;
     }
 
-    private static void createMapItemAndGiveToPlayer(BufferedImage img, ColorHelper cH,
-                                                     ServerPlayerEntity player, ServerWorld serverWorld, int[] mapSize) {
+    private static ItemStack drawMapFrom2DimByteArray(int mapX, int mapY, byte[][] img, PlayerEntity player,
+                                                      ServerWorld serverWorld) {
+
+        ItemStack mapItem = FilledMapItem.createMap(player.getWorld(), 40_000_000, 40_000_000, (byte) 0,
+                false, false);
+
+        MapState mapState = FilledMapItem.getMapState(mapItem, serverWorld);
+
+        assert mapState != null;
+        for (int i = 0; i < 128; ++i) {
+            if (i + mapX * 128 >= img.length) {
+                break;
+            }
+            for (int j = 0; j < 128; ++j) {
+                if (j + mapY * 128 >= img[0].length) {
+                    break;
+                }
+                try {
+                    mapState.setColor(i, j, img[i + mapX * 128][j + mapY * 128]);
+                }
+                catch (Exception e) {
+                    logger.error("Could not find color {} {}", i, j);
+                    logger.error("Could not find color {}", img[i + mapX * 128][j + mapY * 128]);
+                }
+            }
+        }
+        mapItem.set(DataComponentTypes.MAP_POST_PROCESSING, MapPostProcessingComponent.LOCK);
+        return mapItem;
+
+    }
+
+    private static void createMapItemAndGiveToPlayer(BufferedImage img,
+                                                     ColorHelper cH, ServerPlayerEntity player, ServerWorld serverWorld,
+                                                     int[] mapSize) {
+
         int mapHeight = (int) (Math.ceil(img.getHeight() / (double) 128));
         int mapWidth = (int) (Math.ceil(img.getWidth() / (double) 128));
         // drawing map
         for (int map_i = 0; map_i < mapWidth; ++map_i) {
             for (int map_j = 0; map_j < mapHeight; ++map_j) {
                 ItemStack mapItem = drawMap(map_i, map_j, img, player, serverWorld, cH);
+                giveItemToPlayer(mapItem, player);
+
+            }
+        }
+        mapSize[0] = mapWidth;
+        mapSize[1] = mapHeight;
+    }
+
+    private static void createMapItemAndGiveToPlayer(byte[][] img, ServerPlayerEntity player, ServerWorld serverWorld,
+                                                     int[] mapSize) {
+
+        int mapHeight = (int) (Math.ceil(img[0].length / (double) 128));
+        int mapWidth = (int) (Math.ceil(img.length / (double) 128));
+        // drawing map
+        for (int map_i = 0; map_i < mapWidth; ++map_i) {
+            for (int map_j = 0; map_j < mapHeight; ++map_j) {
+                ItemStack mapItem = drawMapFrom2DimByteArray(map_i, map_j, img, player, serverWorld);
                 giveItemToPlayer(mapItem, player);
 
             }
@@ -165,6 +217,7 @@ public class CustomMapCommand {
     }
 
 
+
     private static int run(ServerCommandSource context, String url, boolean apb) {
         ServerPlayerEntity player = context.getPlayer();
         ServerWorld serverWorld = context.getWorld();
@@ -197,8 +250,22 @@ public class CustomMapCommand {
 
             return -1;
         }
+        if (apb) {
+            Thread thread = new Thread(() -> {
+                byte[][] blendImage = ImageBlender.blend(img);
+                createMapItemAndGiveToPlayer(blendImage, player, serverWorld, mapSize);
+                context.sendFeedback(() -> Text.literal(String.format("Your image-size: %dx%d Blocks", mapSize[0], mapSize[1]))
+                        .withColor(CHAT_MESSAGE_COLOR), true);
 
-        createMapItemAndGiveToPlayer(img, cH, player, serverWorld, mapSize);
+            });
+            thread.start();
+
+            return 1;
+        }
+        else {
+            createMapItemAndGiveToPlayer(img, cH, player, serverWorld, mapSize);
+
+        }
         context.sendFeedback(() -> Text.literal(String.format("Your image-size: %dx%d Blocks", mapSize[0], mapSize[1]))
                 .withColor(CHAT_MESSAGE_COLOR), true);
 
