@@ -39,7 +39,7 @@ public class CustomMapCommand {
 
     private CustomMapCommand() {
     }
-
+    @SuppressWarnings("unused")
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess cRA,
                                 CommandManager.RegistrationEnvironment rE) {
         dispatcher.register(literal("map")
@@ -252,7 +252,14 @@ public class CustomMapCommand {
         }
         if (apb) {
             Thread thread = new Thread(() -> {
-                byte[][] blendImage = ImageBlender.blend(img);
+                byte[][] blendImage = new byte[0][];
+                try {
+                    blendImage = ImageBlender.blend(img);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    logger.error("Thread error while blending image");
+                }
+
                 createMapItemAndGiveToPlayer(blendImage, player, serverWorld, mapSize);
                 context.sendFeedback(() -> Text.literal(String.format("Your image-size: %dx%d Blocks", mapSize[0], mapSize[1]))
                         .withColor(CHAT_MESSAGE_COLOR), true);
@@ -269,6 +276,6 @@ public class CustomMapCommand {
         context.sendFeedback(() -> Text.literal(String.format("Your image-size: %dx%d Blocks", mapSize[0], mapSize[1]))
                 .withColor(CHAT_MESSAGE_COLOR), true);
 
-        return 1;
+        return 0;
     }
 }
