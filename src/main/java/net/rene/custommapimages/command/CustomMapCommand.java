@@ -39,7 +39,7 @@ public class CustomMapCommand {
 
     private CustomMapCommand() {
     }
-
+    @SuppressWarnings("unused")
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess cRA,
                                 CommandManager.RegistrationEnvironment rE) {
         dispatcher.register(literal("map")
@@ -78,16 +78,16 @@ public class CustomMapCommand {
         BufferedImage img;
         try {
             img = ImageIO.read(URI.create(url).toURL());
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             logger.error("Failed to read image from url");
             context.sendFeedback(() -> Text.literal("Can't read image").withColor(CHAT_ERROR_COLOR),
                     true);
 
             return null;
         }
+
         logger.info("Reading image worked!");
-
-
         return img;
     }
 
@@ -116,6 +116,7 @@ public class CustomMapCommand {
                 );
             }
         }
+
         mapItem.set(DataComponentTypes.MAP_POST_PROCESSING, MapPostProcessingComponent.LOCK);
         return mapItem;
     }
@@ -146,6 +147,7 @@ public class CustomMapCommand {
                 }
             }
         }
+
         mapItem.set(DataComponentTypes.MAP_POST_PROCESSING, MapPostProcessingComponent.LOCK);
         return mapItem;
 
@@ -208,7 +210,8 @@ public class CustomMapCommand {
 
             player.currentScreenHandler.sendContentUpdates();
 
-        } else {
+        }
+        else {
             if (itemEntity != null) {
                 itemEntity.resetPickupDelay();
                 itemEntity.setOwner(player.getUuid());
@@ -250,14 +253,23 @@ public class CustomMapCommand {
 
             return -1;
         }
+
         if (apb) {
             Thread thread = new Thread(() -> {
-                byte[][] blendImage = ImageBlender.blend(img);
+                byte[][] blendImage = new byte[0][];
+                try {
+                    blendImage = ImageBlender.blend(img);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    logger.error("Thread error while blending image");
+                }
+
                 createMapItemAndGiveToPlayer(blendImage, player, serverWorld, mapSize);
                 context.sendFeedback(() -> Text.literal(String.format("Your image-size: %dx%d Blocks", mapSize[0], mapSize[1]))
                         .withColor(CHAT_MESSAGE_COLOR), true);
 
             });
+
             thread.start();
 
             return 1;
@@ -266,9 +278,10 @@ public class CustomMapCommand {
             createMapItemAndGiveToPlayer(img, cH, player, serverWorld, mapSize);
 
         }
+
         context.sendFeedback(() -> Text.literal(String.format("Your image-size: %dx%d Blocks", mapSize[0], mapSize[1]))
                 .withColor(CHAT_MESSAGE_COLOR), true);
 
-        return 1;
+        return 0;
     }
 }
